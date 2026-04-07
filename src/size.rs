@@ -85,7 +85,37 @@ mod tests {
     fn rejects_garbage() {
         assert!(parse_size("abc").is_err());
         assert!(parse_size("").is_err());
+        assert!(parse_size("  ").is_err());
         assert!(parse_size("-1K").is_err());
+        assert!(parse_size("1.5.2K").is_err());
+        assert!(parse_size("inf").is_err());
+        assert!(parse_size("NaN").is_err());
+    }
+
+    #[test]
+    fn rejects_overflow() {
+        // 10^20 bytes is > u64::MAX (~1.8 * 10^19)
+        assert!(parse_size("100000000000T").is_err());
+    }
+
+    #[test]
+    fn parses_zero() {
+        assert_eq!(parse_size("0").unwrap(), 0);
+        assert_eq!(parse_size("0K").unwrap(), 0);
+        assert_eq!(parse_size("0MB").unwrap(), 0);
+    }
+
+    #[test]
+    fn parses_whitespace_between_num_and_unit() {
+        assert_eq!(parse_size("1 K").unwrap(), 1024);
+        assert_eq!(parse_size("  2MB  ").unwrap(), 2 * 1024 * 1024);
+    }
+
+    #[test]
+    fn parses_case_insensitive_units() {
+        assert_eq!(parse_size("1k").unwrap(), 1024);
+        assert_eq!(parse_size("1Kb").unwrap(), 1024);
+        assert_eq!(parse_size("1kB").unwrap(), 1024);
     }
 
     #[test]
@@ -96,5 +126,12 @@ mod tests {
         assert_eq!(format_size(1536), "1.50 KB");
         assert_eq!(format_size(1024 * 1024), "1.00 MB");
         assert_eq!(format_size(1024u64 * 1024 * 1024 * 3), "3.00 GB");
+    }
+
+    #[test]
+    fn formats_edge_sizes() {
+        assert_eq!(format_size(1), "1 B");
+        assert_eq!(format_size(1023), "1023 B");
+        assert_eq!(format_size(1024u64 * 1024 * 1024 * 1024), "1.00 TB");
     }
 }

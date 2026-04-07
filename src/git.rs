@@ -248,4 +248,65 @@ mod tests {
         assert_eq!(top.len(), 3);
         assert_eq!(top[0].size, 1009);
     }
+
+    #[test]
+    fn limit_larger_than_len() {
+        let blobs = vec![Blob {
+            oid: "a".into(),
+            size: 100,
+            path: "a".into(),
+        }];
+        let top = top_blobs(blobs, 0, 50);
+        assert_eq!(top.len(), 1);
+    }
+
+    #[test]
+    fn parses_blob_paths_with_spaces() {
+        let text = "blob abc123 1024 path with spaces/file name.bin\n";
+        let blobs = parse_cat_file(text);
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].path, "path with spaces/file name.bin");
+    }
+
+    #[test]
+    fn parses_empty_path_blob() {
+        let text = "blob abc123 1024 \n";
+        let blobs = parse_cat_file(text);
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].path, "");
+    }
+
+    #[test]
+    fn ignores_missing_object_lines() {
+        // cat-file emits "<input> missing" for unknown objects
+        let text = "deadbeef missing\nblob abc 100 f\n";
+        let blobs = parse_cat_file(text);
+        assert_eq!(blobs.len(), 1);
+        assert_eq!(blobs[0].oid, "abc");
+    }
+
+    #[test]
+    fn dedupes_by_oid_keeping_largest_first() {
+        let blobs = vec![
+            Blob {
+                oid: "x".into(),
+                size: 100,
+                path: "short".into(),
+            },
+            Blob {
+                oid: "x".into(),
+                size: 100,
+                path: "longer-path".into(),
+            },
+        ];
+        let top = top_blobs(blobs, 0, 10);
+        assert_eq!(top.len(), 1);
+    }
+
+    #[test]
+    fn first_commit_for_empty_path_returns_none() {
+        // Use current repo (we're inside one during tests)
+        let repo = Path::new(".");
+        assert!(first_commit_for_path(repo, "").is_none());
+    }
 }
