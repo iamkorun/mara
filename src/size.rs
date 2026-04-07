@@ -26,10 +26,17 @@ pub fn parse_size(input: &str) -> Result<u64> {
         .trim()
         .parse()
         .map_err(|_| anyhow!("invalid size: '{}'", input))?;
+    if !num.is_finite() {
+        return Err(anyhow!("invalid size: '{}'", input));
+    }
     if num < 0.0 {
         return Err(anyhow!("negative size: '{}'", input));
     }
-    Ok((num * mult as f64) as u64)
+    let bytes = num * mult as f64;
+    if bytes >= (u64::MAX as f64) {
+        return Err(anyhow!("size too large: '{}'", input));
+    }
+    Ok(bytes as u64)
 }
 
 /// Format a byte count as a human-readable string.

@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Context, Result};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -43,16 +44,18 @@ pub fn ensure_repo(path: &Path) -> Result<PathBuf> {
 /// Walk all reachable git objects and return blob entries (oid, size, path).
 pub fn list_blobs(repo: &Path) -> Result<Vec<Blob>> {
     // git rev-list --objects --all → "<oid> [path]"
-    let rev = Command::new("git")
+    let mut rev = Command::new("git")
         .arg("-C")
         .arg(repo)
         .args(["rev-list", "--objects", "--all"])
         .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .context("spawning git rev-list")?;
 
-    let rev_out = rev
+    let rev_stdout = rev
         .stdout
+        .take()
         .ok_or_else(|| anyhow!("could not capture git rev-list output"))?;
 
     let cat = Command::new("git")
@@ -62,14 +65,28 @@ pub fn list_blobs(repo: &Path) -> Result<Vec<Blob>> {
             "cat-file",
             "--batch-check=%(objecttype) %(objectname) %(objectsize) %(rest)",
         ])
-        .stdin(Stdio::from(rev_out))
+        .stdin(Stdio::from(rev_stdout))
         .output()
         .context("running git cat-file")?;
+
+    // Reap rev-list so it doesn't linger as a zombie, and surface its errors.
+    let rev_status = rev.wait().context("waiting on git rev-list")?;
+    if !rev_status.success() {
+        let mut err = String::new();
+        if let Some(mut stderr) = rev.stderr.take() {
+            stderr.read_to_string(&mut err).ok();
+        }
+        let err = err.trim();
+        if err.is_empty() {
+            return Err(anyhow!("git rev-list failed"));
+        }
+        return Err(anyhow!("git rev-list failed: {}", err));
+    }
 
     if !cat.status.success() {
         return Err(anyhow!(
             "git cat-file failed: {}",
-            String::from_utf8_lossy(&cat.stderr)
+            String::from_utf8_lossy(&cat.stderr).trim()
         ));
     }
     let stdout = String::from_utf8_lossy(&cat.stdout);

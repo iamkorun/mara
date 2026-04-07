@@ -132,7 +132,13 @@ fn cmd_scan(args: &ScanArgs, verbose: bool, quiet: bool) -> Result<()> {
             .chars()
             .take(20)
             .collect::<String>();
-        let sha = r.commit.as_deref().unwrap_or("-");
+        let sha = r
+            .commit
+            .as_deref()
+            .unwrap_or("-")
+            .chars()
+            .take(8)
+            .collect::<String>();
         let path = if r.path.is_empty() {
             "(unreferenced)"
         } else {
@@ -194,7 +200,9 @@ fn cmd_suggest(args: &SuggestArgs, verbose: bool, quiet: bool) -> Result<()> {
         })
         .collect();
     if paths.is_empty() {
-        println!("# Top bloaters are unreferenced — try `git gc --prune=now --aggressive`.");
+        if !quiet {
+            println!("# Top bloaters are unreferenced — try `git gc --prune=now --aggressive`.");
+        }
         return Ok(());
     }
     print!("git filter-repo --invert-paths");
