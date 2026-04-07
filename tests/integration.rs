@@ -58,6 +58,28 @@ fn scan_finds_large_blob() {
         stdout
     );
     assert!(!stdout.contains("small.txt"));
+    assert!(
+        stdout.contains("Scanned"),
+        "missing summary line:\n{}",
+        stdout
+    );
+}
+
+#[test]
+fn scan_accepts_short_flags() {
+    let dir = setup_repo();
+    let out = Command::new(bin())
+        .args(["scan", "-m", "100K", "-l", "5", "-p"])
+        .arg(dir.path())
+        .output()
+        .expect("run mara");
+    assert!(
+        out.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(stdout.contains("big.bin"));
 }
 
 #[test]

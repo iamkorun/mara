@@ -1,18 +1,36 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use mara::git::{enrich, list_blobs, top_blobs, BlobReport};
 use mara::size::{format_size, parse_size};
 use mara::stat;
 
+const LONG_ABOUT: &str = "\
+mara walks every object in a git repository, finds the largest blobs, and
+tells you exactly which file they came from — along with a ready-to-run
+`git filter-repo` command to remove them.
+
+Examples:
+  mara scan                          # top 20 blobs over 100 KB
+  mara scan -m 1M -l 10              # top 10 blobs over 1 MB
+  mara scan -p /path/to/repo         # scan another repo
+  mara stat                          # .git size breakdown
+  mara suggest -l 5                  # cleanup command for top 5 bloaters";
+
 #[derive(Parser)]
-#[command(name = "mara", version, about = "Find exactly what's bloating your git history", long_about = None)]
+#[command(
+    name = "mara",
+    version,
+    about = "Find exactly what's bloating your git history",
+    long_about = LONG_ABOUT,
+)]
 struct Cli {
-    /// Verbose output (show progress).
+    /// Verbose output (show progress on stderr).
     #[arg(short, long, global = true)]
     verbose: bool,
-    /// Suppress non-essential output.
+    /// Suppress headers and summary lines.
     #[arg(short, long, global = true, conflicts_with = "verbose")]
     quiet: bool,
 
@@ -33,33 +51,33 @@ enum Commands {
 #[derive(Parser)]
 struct ScanArgs {
     /// Minimum blob size (e.g. 100K, 1M, 500KB).
-    #[arg(long, default_value = "100K")]
+    #[arg(short = 'm', long, default_value = "100K", value_name = "SIZE")]
     min_size: String,
     /// Maximum number of results.
-    #[arg(long, default_value_t = 20)]
+    #[arg(short = 'l', long, default_value_t = 20, value_name = "N")]
     limit: usize,
     /// Path to the git repository.
-    #[arg(long, default_value = ".")]
+    #[arg(short = 'p', long, default_value = ".", value_name = "PATH")]
     path: PathBuf,
 }
 
 #[derive(Parser)]
 struct PathArgs {
     /// Path to the git repository.
-    #[arg(long, default_value = ".")]
+    #[arg(short = 'p', long, default_value = ".", value_name = "PATH")]
     path: PathBuf,
 }
 
 #[derive(Parser)]
 struct SuggestArgs {
     /// Minimum blob size (e.g. 100K, 1M).
-    #[arg(long, default_value = "100K")]
+    #[arg(short = 'm', long, default_value = "100K", value_name = "SIZE")]
     min_size: String,
-    /// Number of bloaters to suggest cleanup for.
-    #[arg(long, default_value_t = 5)]
+    /// Number of bloaters to include in the cleanup command.
+    #[arg(short = 'l', long, default_value_t = 5, value_name = "N")]
     limit: usize,
     /// Path to the git repository.
-    #[arg(long, default_value = ".")]
+    #[arg(short = 'p', long, default_value = ".", value_name = "PATH")]
     path: PathBuf,
 }
 
@@ -79,12 +97,18 @@ fn run() -> Result<()> {
     }
 }
 
+struct ScanSummary {
+    reports: Vec<BlobReport>,
+    total_blobs: usize,
+    elapsed_ms: u128,
+}
+
 fn collect_reports(
     path: &Path,
     min_size: &str,
     limit: usize,
     verbose: bool,
-) -> Result<Vec<BlobReport>> {
+) -> Result<ScanSummary> {
     let min = parse_size(min_size)?;
     let repo = mara::git::ensure_repo(path)?;
     if verbose {
@@ -94,17 +118,24 @@ fn collect_reports(
             format_size(min)
         );
     }
+    let start = Instant::now();
     let blobs = list_blobs(&repo)?;
+    let total_blobs = blobs.len();
     if verbose {
-        eprintln!("found {} blob entries total", blobs.len());
+        eprintln!("found {} blob entries total", total_blobs);
     }
     let top = top_blobs(blobs, min, limit);
-    Ok(enrich(&repo, top))
+    let reports = enrich(&repo, top);
+    Ok(ScanSummary {
+        reports,
+        total_blobs,
+        elapsed_ms: start.elapsed().as_millis(),
+    })
 }
 
 fn cmd_scan(args: &ScanArgs, verbose: bool, quiet: bool) -> Result<()> {
-    let reports = collect_reports(&args.path, &args.min_size, args.limit, verbose)?;
-    if reports.is_empty() {
+    let summary = collect_reports(&args.path, &args.min_size, args.limit, verbose)?;
+    if summary.reports.is_empty() {
         if !quiet {
             println!("No blobs >= {} found.", args.min_size);
         }
@@ -117,7 +148,7 @@ fn cmd_scan(args: &ScanArgs, verbose: bool, quiet: bool) -> Result<()> {
         );
         println!("{}", "-".repeat(78));
     }
-    for r in &reports {
+    for r in &summary.reports {
         let date = r
             .date
             .as_deref()
@@ -153,7 +184,23 @@ fn cmd_scan(args: &ScanArgs, verbose: bool, quiet: bool) -> Result<()> {
             path
         );
     }
+    if !quiet {
+        println!();
+        println!(
+            "Scanned {} objects in {}",
+            summary.total_blobs,
+            format_duration(summary.elapsed_ms)
+        );
+    }
     Ok(())
+}
+
+fn format_duration(ms: u128) -> String {
+    if ms < 1000 {
+        format!("{} ms", ms)
+    } else {
+        format!("{:.2} s", ms as f64 / 1000.0)
+    }
 }
 
 fn cmd_stat(args: &PathArgs, quiet: bool) -> Result<()> {
@@ -175,8 +222,8 @@ fn cmd_stat(args: &PathArgs, quiet: bool) -> Result<()> {
 }
 
 fn cmd_suggest(args: &SuggestArgs, verbose: bool, quiet: bool) -> Result<()> {
-    let reports = collect_reports(&args.path, &args.min_size, args.limit, verbose)?;
-    if reports.is_empty() {
+    let summary = collect_reports(&args.path, &args.min_size, args.limit, verbose)?;
+    if summary.reports.is_empty() {
         if !quiet {
             println!("No bloaters found above {}.", args.min_size);
         }
@@ -189,7 +236,8 @@ fn cmd_suggest(args: &SuggestArgs, verbose: bool, quiet: bool) -> Result<()> {
         println!("# Requires: pip install git-filter-repo");
         println!();
     }
-    let paths: Vec<&str> = reports
+    let paths: Vec<&str> = summary
+        .reports
         .iter()
         .filter_map(|r| {
             if r.path.is_empty() {
