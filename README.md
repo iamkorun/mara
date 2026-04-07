@@ -41,21 +41,21 @@ Named after the [Patagonian mara](https://en.wikipedia.org/wiki/Patagonian_mara)
 
 ```
 $ mara scan
-SIZE      SHA       DATE        FILE
-  12.3MB  a040d9d   2026-03-12  assets/raw/video.mov
-   4.8MB  7dfab63   2026-02-01  dist/bundle.min.js
-   2.1MB  277e3ee   2026-01-15  node_modules/@types/large-pkg/big.d.ts
- 890.4KB  b3c1d22   2025-11-08  vendor/ffmpeg-static/bin/ffmpeg
- 412.0KB  e91f5a8   2025-09-30  test/fixtures/sample-data.csv
-...
-Scanned 4,821 objects in 0.3s
+      SIZE  SHA       DATE        AUTHOR                PATH
+------------------------------------------------------------------------------
+  12.34 MB  a040d9d   2026-03-12  alice                 assets/raw/video.mov
+   4.82 MB  7dfab63   2026-02-01  bob                   dist/bundle.min.js
+   2.11 MB  277e3ee   2026-01-15  alice                 node_modules/@types/large-pkg/big.d.ts
+ 890.40 KB  b3c1d22   2025-11-08  carol                 vendor/ffmpeg-static/bin/ffmpeg
+ 412.00 KB  e91f5a8   2025-09-30  bob                   test/fixtures/sample-data.csv
+
+Scanned 4821 objects in 312 ms
 
 $ mara suggest --limit 3
-# ⚠️  These commands REWRITE HISTORY. Back up your repo first.
-# Install: pip install git-filter-repo
-git filter-repo --path assets/raw/video.mov --invert-paths
-git filter-repo --path dist/bundle.min.js --invert-paths
-git filter-repo --path 'node_modules/@types/large-pkg/big.d.ts' --invert-paths
+# WARNING: this rewrites git history. Coordinate with your team and back up first.
+# Requires: pip install git-filter-repo
+
+git filter-repo --invert-paths --path assets/raw/video.mov --path dist/bundle.min.js --path 'node_modules/@types/large-pkg/big.d.ts'
 ```
 
 ## Quick Start
@@ -95,33 +95,35 @@ Pre-built binaries for Linux, macOS, and Windows are **coming soon** via GitHub 
 ### `mara scan` — find large blobs
 
 ```sh
-# Scan current repo (shows top 20 blobs > 100KB)
+# Scan current repo (top 20 blobs over 100 KB)
 mara scan
 
-# Only show blobs larger than 1MB
-mara scan --min-size 1M
+# Only show blobs larger than 1 MB
+mara scan -m 1M            # short form
+mara scan --min-size 1M    # long form
 
-# Show top 10 results
-mara scan --limit 10
+# Top 10 results
+mara scan -l 10
 
-# Scan a specific repo path
-mara scan --path /path/to/repo
+# Scan a specific repo
+mara scan -p /path/to/repo
 
 # Combine flags
-mara scan --min-size 500K --limit 5 --path /path/to/repo
+mara scan -m 500K -l 5 -p /path/to/repo
 ```
 
 **Sample output:**
 
 ```
-SIZE      SHA       DATE        FILE
-  12.3MB  a040d9d   2026-03-12  assets/raw/video.mov
-   4.8MB  7dfab63   2026-02-01  dist/bundle.min.js
-   2.1MB  277e3ee   2026-01-15  node_modules/@types/large-pkg/big.d.ts
- 890.4KB  b3c1d22   2025-11-08  vendor/ffmpeg-static/bin/ffmpeg
- 412.0KB  e91f5a8   2025-09-30  test/fixtures/sample-data.csv
-...
-Scanned 4,821 objects in 0.3s
+      SIZE  SHA       DATE        AUTHOR                PATH
+------------------------------------------------------------------------------
+  12.34 MB  a040d9d   2026-03-12  alice                 assets/raw/video.mov
+   4.82 MB  7dfab63   2026-02-01  bob                   dist/bundle.min.js
+   2.11 MB  277e3ee   2026-01-15  alice                 node_modules/@types/large-pkg/big.d.ts
+ 890.40 KB  b3c1d22   2025-11-08  carol                 vendor/ffmpeg-static/bin/ffmpeg
+ 412.00 KB  e91f5a8   2025-09-30  bob                   test/fixtures/sample-data.csv
+
+Scanned 4821 objects in 312 ms
 ```
 
 ### `mara stat` — .git size breakdown
@@ -130,43 +132,55 @@ Scanned 4,821 objects in 0.3s
 mara stat
 
 # Scan a different repo
-mara stat --path /path/to/repo
+mara stat -p /path/to/repo
 ```
 
 **Sample output:**
 
 ```
-.git total:      48.2 MB
-  objects:       41.1 MB
-  pack:          40.8 MB
-  index:         243 KB
-working tree:    8.7 MB
+Repository: /home/alice/projects/my-repo
+Git dir:    /home/alice/projects/my-repo/.git
+
+  .git total          48.21 MB
+    loose objects      1.03 MB
+    pack files        46.95 MB
+    index            243.00 KB
+  working tree         8.70 MB
 ```
 
-### `mara suggest` — generate cleanup commands
+### `mara suggest` — generate a cleanup command
 
 ```sh
-# Get filter-repo commands for top 20 bloaters
+# Cleanup command for the top 5 bloaters
 mara suggest
 
-# Limit to top 5, only files > 1MB
-mara suggest --limit 5 --min-size 1M
+# Top 3, only files > 1 MB
+mara suggest -l 3 -m 1M
 
 # Scan a different repo
-mara suggest --path /path/to/repo
+mara suggest -p /path/to/repo
 ```
 
 **Sample output:**
 
 ```
-# ⚠️  These commands REWRITE HISTORY. Back up your repo first.
-# Install: pip install git-filter-repo
-git filter-repo --path assets/raw/video.mov --invert-paths
-git filter-repo --path dist/bundle.min.js --invert-paths
-git filter-repo --path 'node_modules/@types/large-pkg/big.d.ts' --invert-paths
+# WARNING: this rewrites git history. Coordinate with your team and back up first.
+# Requires: pip install git-filter-repo
+
+git filter-repo --invert-paths --path assets/raw/video.mov --path dist/bundle.min.js --path 'node_modules/@types/large-pkg/big.d.ts'
 ```
 
-> Paths with spaces are automatically shell-escaped in suggest output.
+> Paths with spaces are automatically shell-escaped. Pipe into `sh` at your own risk —
+> `git filter-repo` rewrites history and is irreversible.
+
+### Global flags
+
+```sh
+mara -v scan    # verbose: prints progress to stderr
+mara -q scan    # quiet: suppresses table headers and summary lines
+mara --version  # print version
+mara --help     # full help with examples
+```
 
 ## How It Works
 
