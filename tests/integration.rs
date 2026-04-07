@@ -257,7 +257,10 @@ fn stat_quiet_prints_only_total() {
     assert!(!stdout.contains("loose objects"));
     // First non-empty line should be parseable as a number.
     let first = stdout.trim().lines().next().unwrap_or("");
-    assert!(first.parse::<u64>().is_ok(), "expected number, got: {first}");
+    assert!(
+        first.parse::<u64>().is_ok(),
+        "expected number, got: {first}"
+    );
 }
 
 #[test]
