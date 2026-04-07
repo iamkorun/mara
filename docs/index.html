@@ -322,25 +322,28 @@
       </div>
       <div class="terminal-body">
         <div><span class="prompt">$</span> <span class="cmd">mara scan</span></div>
-        <div style="margin-top:8px; color:#555;">SIZE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SHA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILE</div>
-        <div><span class="col-size">&nbsp;&nbsp;12.3MB</span>&nbsp;&nbsp;<span class="col-sha">a040d9d</span>&nbsp;&nbsp;&nbsp;<span class="col-date">2026-03-12</span>&nbsp;&nbsp;<span class="col-file">assets/raw/video.mov</span></div>
-        <div><span class="col-size">&nbsp;&nbsp;&nbsp;4.8MB</span>&nbsp;&nbsp;<span class="col-sha">7dfab63</span>&nbsp;&nbsp;&nbsp;<span class="col-date">2026-02-01</span>&nbsp;&nbsp;<span class="col-file">dist/bundle.min.js</span></div>
-        <div><span class="col-size">&nbsp;&nbsp;&nbsp;2.1MB</span>&nbsp;&nbsp;<span class="col-sha">277e3ee</span>&nbsp;&nbsp;&nbsp;<span class="col-date">2026-01-15</span>&nbsp;&nbsp;<span class="col-file">node_modules/@types/large-pkg/big.d.ts</span></div>
-        <div><span class="col-size">&nbsp;890.4KB</span>&nbsp;&nbsp;<span class="col-sha">b3c1d22</span>&nbsp;&nbsp;&nbsp;<span class="col-date">2025-11-08</span>&nbsp;&nbsp;<span class="col-file">vendor/ffmpeg-static/bin/ffmpeg</span></div>
-        <div><span class="col-size">&nbsp;412.0KB</span>&nbsp;&nbsp;<span class="col-sha">e91f5a8</span>&nbsp;&nbsp;&nbsp;<span class="col-date">2025-09-30</span>&nbsp;&nbsp;<span class="col-file">test/fixtures/sample-data.csv</span></div>
-        <div style="color:#555; margin-top:8px;">Scanned 4,821 objects in 0.3s</div>
+        <div style="margin-top:8px; color:#555;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SIZE&nbsp;&nbsp;SHA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AUTHOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PATH</div>
+        <div style="color:#333;">------------------------------------------------------------------------------</div>
+        <div><span class="col-size">&nbsp;&nbsp;12.34 MB</span>&nbsp;&nbsp;<span class="col-sha">a040d9d&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-03-12</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">alice&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">assets/raw/video.mov</span></div>
+        <div><span class="col-size">&nbsp;&nbsp;&nbsp;4.82 MB</span>&nbsp;&nbsp;<span class="col-sha">7dfab63&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-02-01</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">dist/bundle.min.js</span></div>
+        <div><span class="col-size">&nbsp;&nbsp;&nbsp;2.11 MB</span>&nbsp;&nbsp;<span class="col-sha">277e3ee&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-01-15</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">alice&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">node_modules/@types/large-pkg/big.d.ts</span></div>
+        <div><span class="col-size">&nbsp;890.40 KB</span>&nbsp;&nbsp;<span class="col-sha">b3c1d22&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2025-11-08</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">carol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">vendor/ffmpeg-static/bin/ffmpeg</span></div>
+        <div><span class="col-size">&nbsp;412.00 KB</span>&nbsp;&nbsp;<span class="col-sha">e91f5a8&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2025-09-30</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">test/fixtures/sample-data.csv</span></div>
+        <div style="color:#555; margin-top:8px;">Scanned 4821 objects in 312 ms</div>
+
         <div style="margin-top:16px;"><span class="prompt">$</span> <span class="cmd">mara suggest --limit 3</span></div>
-        <div style="margin-top:8px;"><span class="col-warn"># ⚠️  These commands REWRITE HISTORY. Back up your repo first.</span></div>
-        <div><span class="col-hint"># Install: pip install git-filter-repo</span></div>
-        <div><span class="col-suggest">git filter-repo --path assets/raw/video.mov --invert-paths</span></div>
-        <div><span class="col-suggest">git filter-repo --path dist/bundle.min.js --invert-paths</span></div>
-        <div><span class="col-suggest">git filter-repo --path 'node_modules/@types/large-pkg/big.d.ts' --invert-paths</span></div>
+        <div style="margin-top:8px;"><span class="col-warn"># WARNING: this rewrites git history. Coordinate with your team and back up first.</span></div>
+        <div><span class="col-hint"># Requires: pip install git-filter-repo</span></div>
+        <div style="margin-top:4px;"><span class="col-suggest">git filter-repo --invert-paths --path assets/raw/video.mov --path dist/bundle.min.js --path 'node_modules/@types/large-pkg/big.d.ts'</span></div>
+
         <div style="margin-top:16px;"><span class="prompt">$</span> <span class="cmd">mara stat</span></div>
-        <div style="margin-top:8px;"><span style="color:#e5e5e5;">.git total:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="col-amber">48.2 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;objects:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">41.1 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;pack:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">40.8 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;index:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">243 KB</span></div>
-        <div><span style="color:#9ca3af;">working tree:&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">8.7 MB</span></div>
+        <div style="margin-top:8px;"><span style="color:#9ca3af;">Repository:&nbsp;</span><span style="color:#e5e5e5;">/home/alice/projects/my-repo</span></div>
+        <div><span style="color:#9ca3af;">Git dir:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">/home/alice/projects/my-repo/.git</span></div>
+        <div style="margin-top:8px;"><span style="color:#e5e5e5;">&nbsp;&nbsp;.git total&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="col-amber">&nbsp;48.21 MB</span></div>
+        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;loose objects&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">1.03 MB</span></div>
+        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;pack files&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">46.95 MB</span></div>
+        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">243.00 KB</span></div>
+        <div><span style="color:#9ca3af;">&nbsp;&nbsp;working tree&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">8.70 MB</span></div>
       </div>
     </div>
   </div>
@@ -391,8 +394,8 @@
       <span style="color:#6b6b6b;"># enumerate every object, filter blobs by size</span><br>
       <span style="color:#4ade80;">git rev-list --objects --all</span> | <span style="color:#93c5fd;">git cat-file --batch-check</span><br>
       <br>
-      <span style="color:#6b6b6b;"># find the first commit that introduced each blob</span><br>
-      <span style="color:#4ade80;">git log --diff-filter=A --find-object=&lt;oid&gt;</span>
+      <span style="color:#6b6b6b;"># find the first commit that introduced each path</span><br>
+      <span style="color:#4ade80;">git log --all --diff-filter=A -- &lt;path&gt;</span>
     </div>
     <p style="color:#9ca3af; margin:20px 0 0; font-size:14px; max-width:600px; line-height:1.7;">
       Blobs are deduplicated by OID so the same large file across multiple commits counts once. Results are sorted descending by size. Dependencies: <code class="mono" style="font-size:12px;">clap</code> and <code class="mono" style="font-size:12px;">anyhow</code> — nothing else.
