@@ -1,240 +1,262 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
   <title>mara — find what's bloating your git history</title>
-  <meta name="description" content="Zero-config Rust CLI that shows exactly which files are bloating your git repo history. Blob-level detail, single binary, no setup.">
+  <meta name="description" content="Zero-config Rust CLI that digs through every blob in your git history and shows exactly which files are hogging space — with paths, sizes, and a ready-to-run cleanup command.">
+  <link rel="canonical" href="https://iamkorun.github.io/mara">
 
-  <!-- Open Graph -->
   <meta property="og:title" content="mara — find what's bloating your git history">
-  <meta property="og:description" content="Zero-config Rust CLI that shows exactly which files are bloating your git repo history.">
+  <meta property="og:description" content="Zero-config Rust CLI that digs through every blob in your git history and shows exactly which files are hogging space.">
   <meta property="og:image" content="https://iamkorun.github.io/mara/og-image.png">
   <meta property="og:url" content="https://iamkorun.github.io/mara">
   <meta property="og:type" content="website">
 
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="mara — find what's bloating your git history">
-  <meta name="twitter:description" content="Zero-config Rust CLI that shows exactly which files are bloating your git repo history.">
+  <meta name="twitter:description" content="Zero-config Rust CLI that digs through every blob in your git history and shows exactly which files are hogging space.">
   <meta name="twitter:image" content="https://iamkorun.github.io/mara/og-image.png">
 
-  <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>">
 
-  <!-- Fonts -->
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('forge-theme');
+        if (t === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch(_){}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" as="style">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Satoshi', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
 
   <style>
-    :root {
-      --bg: #0a0a0a;
-      --surface: #111111;
-      --border: #1e1e1e;
-      --text: #e5e5e5;
-      --muted: #6b6b6b;
-      --accent: #f97316;
-      --accent-dim: #7c2d12;
-      --green: #4ade80;
-      --amber: #fbbf24;
+    :root { color-scheme: dark light; }
+
+    .dark {
+      --bg: #1C1A17;
+      --surface: #252220;
+      --border: #36322E;
+      --text: #E8E2D9;
+      --muted: #9C9488;
+      --accent: #C67B4E;
+      --accent-hover: #B56A3D;
+    }
+    .light {
+      --bg: #FAF6EF;
+      --surface: #F0EBE3;
+      --border: #DDD5CA;
+      --text: #2C2824;
+      --muted: #7A7268;
+      --accent: #B56A3D;
+      --accent-hover: #A05A2D;
     }
 
-    * { box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
-
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Satoshi', system-ui, sans-serif;
       margin: 0;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
 
-    code, pre, .mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* Nav */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: rgba(10,10,10,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Terminal block */
     .terminal {
-      background: #0d0d0d;
-      border: 1px solid #222;
-      border-radius: 10px;
+      background: #17140F;
+      border: 1px solid #2E2A25;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
     }
-
     .terminal-bar {
-      background: #1a1a1a;
-      padding: 10px 16px;
+      background: #1F1C18;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       gap: 8px;
-      border-bottom: 1px solid #222;
+      border-bottom: 1px solid #2E2A25;
     }
-
-    .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-
+    .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
     .terminal-body {
-      padding: 20px 24px;
+      padding: 22px 26px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      line-height: 1.7;
+      line-height: 1.8;
       overflow-x: auto;
+      color: #E8E2D9;
     }
 
-    .prompt { color: var(--green); }
-    .cmd { color: #e5e5e5; }
-    .col-size { color: var(--amber); }
-    .col-sha { color: #6b6b6b; }
-    .col-date { color: #9ca3af; }
-    .col-file { color: #93c5fd; }
-    .col-muted { color: var(--muted); }
-    .col-warn { color: #ef4444; }
-    .col-hint { color: var(--muted); }
-    .col-suggest { color: var(--green); }
+    .t-green { color: #4ade80; }
+    .t-amber { color: #fbbf24; }
+    .t-blue { color: #93c5fd; }
+    .t-dim { color: #5C5650; }
+    .t-red { color: #f87171; }
+    .t-gray { color: #8A837A; }
 
-    /* Copy button */
+    .install-pill {
+      background: #17140F;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      color: #E8E2D9;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .install-pill:hover {
+      border-color: var(--accent-hover);
+      box-shadow: 0 0 20px rgba(198,123,78,0.15);
+    }
+
     .copy-btn {
-      background: #1e1e1e;
-      border: 1px solid #333;
-      color: #e5e5e5;
-      padding: 4px 12px;
+      background: var(--accent);
+      color: #17140F;
+      border: none;
+      padding: 6px 16px;
       border-radius: 6px;
       cursor: pointer;
       font-family: 'JetBrains Mono', monospace;
       font-size: 12px;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    .copy-btn:hover { background: #2a2a2a; border-color: #444; }
-    .copy-btn.copied { color: var(--green); border-color: var(--green); }
-
-    /* Install block */
-    .install-block {
-      background: #0d0d0d;
-      border: 1px solid #222;
-      border-radius: 8px;
-      padding: 14px 20px;
+      font-weight: 500;
+      transition: background 0.15s, transform 0.1s;
+      min-height: 44px;
+      min-width: 44px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      max-width: 480px;
+      justify-content: center;
     }
+    .copy-btn:hover { background: var(--accent-hover); }
+    .copy-btn:active { transform: scale(0.97); }
+    .copy-btn.copied { background: #4ade80; }
 
-    .install-cmd {
-      flex: 1;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      color: var(--text);
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
     }
+    .feat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
-    /* Tab buttons */
     .tab-btn {
-      padding: 6px 14px;
-      border-radius: 6px;
+      padding: 8px 18px;
+      border-radius: 8px;
       border: 1px solid transparent;
       background: transparent;
       color: var(--muted);
       cursor: pointer;
-      font-size: 13px;
-      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-family: 'Satoshi', sans-serif;
+      font-weight: 500;
       transition: all 0.15s;
+      min-height: 44px;
     }
-    .tab-btn:hover { color: var(--text); border-color: #333; }
+    .tab-btn:hover { color: var(--text); }
     .tab-btn.active {
-      background: #1e1e1e;
-      border-color: #333;
+      background: var(--surface);
+      border-color: var(--border);
       color: var(--text);
     }
 
-    /* Feature card */
-    .feature-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .feature-card:hover {
-      border-color: #333;
-      transform: translateY(-2px);
-    }
-
-    /* Section fade-in on scroll */
     .fade-in {
       opacity: 0;
       transform: translateY(16px);
       transition: opacity 0.5s ease, transform 0.5s ease;
     }
-    .fade-in.visible {
-      opacity: 1;
-      transform: none;
-    }
+    .fade-in.visible { opacity: 1; transform: none; }
 
-    /* Code block */
     .code-block {
-      background: #0d0d0d;
-      border: 1px solid #1e1e1e;
+      background: #17140F;
+      border: 1px solid #2E2A25;
       border-radius: 8px;
-      padding: 16px 20px;
+      padding: 18px 22px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      line-height: 1.7;
+      line-height: 1.8;
       overflow-x: auto;
+      color: #E8E2D9;
     }
 
-    /* Tab content */
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    /* Gradient text */
-    .grad-text {
-      background: linear-gradient(135deg, #f97316, #fb923c, #fdba74);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #4ade80;
+      color: #17140F;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      opacity: 0;
+      transition: transform 0.3s, opacity 0.3s;
+      z-index: 100;
+      pointer-events: none;
     }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    /* Divider */
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 0;
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
     }
+    .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
 
-    /* CTA button */
     .btn-primary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #f97316;
-      color: #000;
+      background: var(--accent);
+      color: #17140F;
       font-weight: 600;
-      padding: 10px 20px;
+      padding: 10px 22px;
       border-radius: 8px;
       text-decoration: none;
       transition: background 0.15s, transform 0.1s;
       font-size: 14px;
+      min-height: 44px;
     }
-    .btn-primary:hover { background: #ea6a08; transform: translateY(-1px); }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-primary:active { transform: scale(0.98); }
 
     .btn-ghost {
       display: inline-flex;
@@ -243,244 +265,290 @@
       background: transparent;
       color: var(--text);
       font-weight: 500;
-      padding: 10px 20px;
+      padding: 10px 22px;
       border-radius: 8px;
       text-decoration: none;
-      border: 1px solid #333;
+      border: 1px solid var(--border);
       transition: border-color 0.15s, transform 0.1s;
       font-size: 14px;
+      min-height: 44px;
     }
-    .btn-ghost:hover { border-color: #555; transform: translateY(-1px); }
+    .btn-ghost:hover { border-color: var(--accent); }
+    .btn-ghost:active { transform: scale(0.98); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fade-in { opacity: 1; transform: none; transition: none; }
+      .feat-card { transition: none; }
+      .copy-btn { transition: none; }
+      .toast { transition: none; }
+      .btn-primary, .btn-ghost { transition: none; }
+      html { scroll-behavior: auto; }
+    }
 
     @media (max-width: 640px) {
-      .install-block { max-width: 100%; }
-      .terminal-body { font-size: 11px; padding: 14px 16px; }
+      .terminal-body { font-size: 10px; padding: 14px 12px; line-height: 1.6; }
+      .install-pill { font-size: 13px; padding: 12px 14px; gap: 10px; }
+      .nav-links { display: none !important; }
     }
   </style>
 </head>
-<body>
+<body class="min-h-[100dvh]">
 
-<!-- ═══════════════════ NAV ═══════════════════ -->
-<nav>
-  <div style="max-width:1100px; margin:0 auto; padding:0 24px; height:56px; display:flex; align-items:center; justify-content:space-between;">
-    <a href="#" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px; color:#e5e5e5; text-decoration:none;">
-      🐾 mara
-    </a>
-    <div style="display:flex; align-items:center; gap:20px;">
-      <a href="#features" style="color:#6b6b6b; text-decoration:none; font-size:14px; transition:color 0.15s;" onmouseover="this.style.color='#e5e5e5'" onmouseout="this.style.color='#6b6b6b'">Features</a>
-      <a href="#install" style="color:#6b6b6b; text-decoration:none; font-size:14px; transition:color 0.15s;" onmouseover="this.style.color='#e5e5e5'" onmouseout="this.style.color='#6b6b6b'">Install</a>
-      <a href="https://github.com/iamkorun/mara" target="_blank" rel="noopener" style="color:#6b6b6b; text-decoration:none; font-size:14px; display:flex; align-items:center; gap:6px; transition:color 0.15s;" onmouseover="this.style.color='#e5e5e5'" onmouseout="this.style.color='#6b6b6b'">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        GitHub
+<div class="toast" id="toast">Copied!</div>
+
+<!-- NAV -->
+<nav style="position:sticky; top:0; z-index:50; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(14px); border-bottom:1px solid var(--border);">
+  <div style="max-width:1100px; margin:0 auto; padding:0 20px; height:56px; display:flex; align-items:center; justify-content:space-between;">
+    <a href="#" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px; color:var(--text); text-decoration:none;">mara</a>
+    <div style="display:flex; align-items:center; gap:4px;">
+      <div class="nav-links" style="display:flex; align-items:center; gap:2px; margin-right:8px;">
+        <a href="#features" style="color:var(--muted); text-decoration:none; font-size:14px; padding:8px 12px; border-radius:6px;">Features</a>
+        <a href="#install" style="color:var(--muted); text-decoration:none; font-size:14px; padding:8px 12px; border-radius:6px;">Install</a>
+      </div>
+      <a href="https://github.com/iamkorun/mara" target="_blank" rel="noopener" style="color:var(--muted); text-decoration:none; padding:8px; display:flex; align-items:center;" aria-label="GitHub">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
       </a>
+      <a href="https://buymeacoffee.com/iamkorun" target="_blank" rel="noopener" style="color:var(--muted); text-decoration:none; padding:8px; font-size:18px;" aria-label="Buy me a coffee">☕</a>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" aria-pressed="false" id="theme-btn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="sun-icon" style="display:none;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="moon-icon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
     </div>
   </div>
 </nav>
 
-<!-- ═══════════════════ HERO ═══════════════════ -->
-<section style="max-width:1100px; margin:0 auto; padding:80px 24px 64px;">
-  <div style="max-width:700px;">
-    <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:#f97316; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:16px;">
-      🐾 Patagonian mara
-    </div>
-    <h1 style="font-size:clamp(2.4rem,5vw,3.8rem); font-weight:700; line-height:1.1; margin:0 0 20px; letter-spacing:-0.02em;">
-      Find exactly what's<br><span class="grad-text">bloating your git history</span>
+<!-- HERO -->
+<section style="max-width:1100px; margin:0 auto; padding:56px 20px 32px;">
+  <div style="text-align:center; margin-bottom:40px;">
+    <p style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:0.1em; text-transform:uppercase; margin:0 0 16px; font-weight:500;">Patagonian mara &middot; Rust CLI</p>
+    <h1 style="font-size:clamp(2.4rem,5.5vw,4rem); font-weight:700; line-height:1.08; margin:0 0 16px; letter-spacing:-0.03em;">
+      Find what's bloating<br>your git history
     </h1>
-    <p style="font-size:1.15rem; color:#9ca3af; margin:0 0 36px; max-width:560px; line-height:1.7;">
-      Zero-config single Rust binary. Run <code class="mono" style="background:#1a1a1a; padding:2px 6px; border-radius:4px; font-size:0.95em;">mara scan</code> in any repo and instantly see which blobs are eating your <code class="mono" style="background:#1a1a1a; padding:2px 6px; border-radius:4px; font-size:0.95em;">.git</code> — with the file path, commit, size, and a ready-to-run cleanup command.
+    <p style="font-size:1.1rem; color:var(--muted); margin:0 auto; max-width:500px; line-height:1.7;">
+      mara digs through every blob in your repo and names the exact files eating
+      your <code style="font-family:'JetBrains Mono',monospace; background:var(--surface); padding:2px 6px; border-radius:4px; font-size:0.9em; border:1px solid var(--border);">.git</code> directory.
     </p>
+  </div>
 
-    <!-- Install block -->
-    <div class="install-block" style="margin-bottom:24px;">
-      <span class="install-cmd" id="install-cmd-text">cargo install mara</span>
-      <button class="copy-btn" id="install-copy-btn" onclick="copyInstall()">copy</button>
+  <!-- TERMINAL HERO -->
+  <div class="terminal" style="max-width:920px; margin:0 auto;">
+    <div class="terminal-bar">
+      <div class="terminal-dot" style="background:#ff5f57;"></div>
+      <div class="terminal-dot" style="background:#ffbd2e;"></div>
+      <div class="terminal-dot" style="background:#28c840;"></div>
+      <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#5C5650; margin-left:8px;">~/my-project</span>
     </div>
+    <div class="terminal-body">
+      <div><span class="t-green">$</span> mara scan</div>
+      <div style="margin-top:10px;"><span class="t-dim">      SIZE   SHA       DATE         AUTHOR                  PATH</span></div>
+      <div><span class="t-dim">──────────────────────────────────────────────────────────────────────────────</span></div>
+      <div><span class="t-amber">  12.34 MB</span>  <span class="t-dim">a040d9d</span>   <span class="t-gray">2026-03-12</span>   <span class="t-gray">alice                  </span> <span class="t-blue">assets/raw/video.mov</span></div>
+      <div><span class="t-amber">   4.82 MB</span>  <span class="t-dim">7dfab63</span>   <span class="t-gray">2026-02-01</span>   <span class="t-gray">bob                    </span> <span class="t-blue">dist/bundle.min.js</span></div>
+      <div><span class="t-amber">   2.11 MB</span>  <span class="t-dim">277e3ee</span>   <span class="t-gray">2026-01-15</span>   <span class="t-gray">alice                  </span> <span class="t-blue">node_modules/@types/large-pkg/big.d.ts</span></div>
+      <div><span class="t-amber"> 890.40 KB</span>  <span class="t-dim">b3c1d22</span>   <span class="t-gray">2025-11-08</span>   <span class="t-gray">carol                  </span> <span class="t-blue">vendor/ffmpeg-static/bin/ffmpeg</span></div>
+      <div><span class="t-amber"> 412.00 KB</span>  <span class="t-dim">e91f5a8</span>   <span class="t-gray">2025-09-30</span>   <span class="t-gray">bob                    </span> <span class="t-blue">test/fixtures/sample-data.csv</span></div>
+      <div style="margin-top:10px;"><span class="t-dim">Scanned 4821 objects in 312 ms</span></div>
+      <div style="margin-top:18px;"><span class="t-green">$</span> mara suggest --limit 3</div>
+      <div style="margin-top:8px;"><span class="t-red"># WARNING: this rewrites git history. Coordinate with your team first.</span></div>
+      <div><span class="t-dim"># Requires: pip install git-filter-repo</span></div>
+      <div style="margin-top:4px;"><span class="t-green">git filter-repo --invert-paths --path assets/raw/video.mov \</span></div>
+      <div><span class="t-green">  --path dist/bundle.min.js \</span></div>
+      <div><span class="t-green">  --path 'node_modules/@types/large-pkg/big.d.ts'</span></div>
+    </div>
+  </div>
 
-    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+  <!-- INSTALL PILL + CTAs -->
+  <div style="text-align:center; margin-top:36px;">
+    <div class="install-pill" style="margin-bottom:24px;">
+      <span id="install-text">cargo install mara</span>
+      <button class="copy-btn" id="copy-btn" onclick="copyCmd('cargo install mara')">copy</button>
+    </div>
+    <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap; align-items:center;">
       <a href="https://github.com/iamkorun/mara" target="_blank" rel="noopener" class="btn-primary">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
         Star on GitHub
       </a>
-      <a href="#demo" class="btn-ghost">See demo ↓</a>
+      <a href="#features" class="btn-ghost">How it works ↓</a>
     </div>
-
-    <div style="margin-top:20px;">
-      <img src="https://img.shields.io/github/stars/iamkorun/mara?style=social" alt="GitHub stars">
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════ DEMO ═══════════════════ -->
-<section id="demo" style="max-width:1100px; margin:0 auto; padding:0 24px 80px;">
-  <div class="fade-in">
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="dot" style="background:#ff5f57;"></div>
-        <div class="dot" style="background:#ffbd2e;"></div>
-        <div class="dot" style="background:#28c840;"></div>
-        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#555; margin-left:8px;">~/my-project</span>
-      </div>
-      <div class="terminal-body">
-        <div><span class="prompt">$</span> <span class="cmd">mara scan</span></div>
-        <div style="margin-top:8px; color:#555;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SIZE&nbsp;&nbsp;SHA&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATE&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AUTHOR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PATH</div>
-        <div style="color:#333;">------------------------------------------------------------------------------</div>
-        <div><span class="col-size">&nbsp;&nbsp;12.34 MB</span>&nbsp;&nbsp;<span class="col-sha">a040d9d&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-03-12</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">alice&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">assets/raw/video.mov</span></div>
-        <div><span class="col-size">&nbsp;&nbsp;&nbsp;4.82 MB</span>&nbsp;&nbsp;<span class="col-sha">7dfab63&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-02-01</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">dist/bundle.min.js</span></div>
-        <div><span class="col-size">&nbsp;&nbsp;&nbsp;2.11 MB</span>&nbsp;&nbsp;<span class="col-sha">277e3ee&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2026-01-15</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">alice&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">node_modules/@types/large-pkg/big.d.ts</span></div>
-        <div><span class="col-size">&nbsp;890.40 KB</span>&nbsp;&nbsp;<span class="col-sha">b3c1d22&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2025-11-08</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">carol&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">vendor/ffmpeg-static/bin/ffmpeg</span></div>
-        <div><span class="col-size">&nbsp;412.00 KB</span>&nbsp;&nbsp;<span class="col-sha">e91f5a8&nbsp;</span>&nbsp;&nbsp;<span class="col-date">2025-09-30</span>&nbsp;&nbsp;<span style="color:#7c7c7c;">bob&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;&nbsp;<span class="col-file">test/fixtures/sample-data.csv</span></div>
-        <div style="color:#555; margin-top:8px;">Scanned 4821 objects in 312 ms</div>
-
-        <div style="margin-top:16px;"><span class="prompt">$</span> <span class="cmd">mara suggest --limit 3</span></div>
-        <div style="margin-top:8px;"><span class="col-warn"># WARNING: this rewrites git history. Coordinate with your team and back up first.</span></div>
-        <div><span class="col-hint"># Requires: pip install git-filter-repo</span></div>
-        <div style="margin-top:4px;"><span class="col-suggest">git filter-repo --invert-paths --path assets/raw/video.mov --path dist/bundle.min.js --path 'node_modules/@types/large-pkg/big.d.ts'</span></div>
-
-        <div style="margin-top:16px;"><span class="prompt">$</span> <span class="cmd">mara stat</span></div>
-        <div style="margin-top:8px;"><span style="color:#9ca3af;">Repository:&nbsp;</span><span style="color:#e5e5e5;">/home/alice/projects/my-repo</span></div>
-        <div><span style="color:#9ca3af;">Git dir:&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">/home/alice/projects/my-repo/.git</span></div>
-        <div style="margin-top:8px;"><span style="color:#e5e5e5;">&nbsp;&nbsp;.git total&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="col-amber">&nbsp;48.21 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;loose objects&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">1.03 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;pack files&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">46.95 MB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;&nbsp;&nbsp;index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">243.00 KB</span></div>
-        <div><span style="color:#9ca3af;">&nbsp;&nbsp;working tree&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="color:#e5e5e5;">8.70 MB</span></div>
-      </div>
+    <div style="margin-top:16px;">
+      <img src="https://img.shields.io/github/stars/iamkorun/mara?style=social" alt="GitHub stars" width="91" height="20">
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ FEATURES ═══════════════════ -->
-<section id="features" style="max-width:1100px; margin:0 auto; padding:0 24px 80px;">
+<hr style="border:none; border-top:1px solid var(--border); margin:0;">
+
+<!-- FEATURES -->
+<section id="features" style="max-width:1100px; margin:0 auto; padding:80px 20px;">
   <div class="fade-in">
     <h2 style="font-size:1.8rem; font-weight:700; margin:0 0 8px; letter-spacing:-0.02em;">Why mara?</h2>
-    <p style="color:#6b6b6b; margin:0 0 40px;">The missing "find and report" step before running BFG or git filter-repo.</p>
+    <p style="color:var(--muted); margin:0 0 40px; max-width:500px;">The missing "find and report" step before running BFG or git filter-repo.</p>
 
     <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px;">
-
-      <div class="feature-card">
-        <div style="font-size:1.5rem; margin-bottom:12px;">🔍</div>
+      <div class="feat-card">
+        <div style="font-size:1.4rem; margin-bottom:12px;">🔍</div>
         <div style="font-weight:600; margin-bottom:6px;">Blob-level detail</div>
-        <div style="color:#6b6b6b; font-size:14px; line-height:1.6;">Unlike <code class="mono" style="font-size:12px;">git-sizer</code>'s aggregate stats, mara names the exact files — path, size, SHA, date, author.</div>
+        <div style="color:var(--muted); font-size:14px; line-height:1.7;">Unlike <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">git-sizer</code> aggregate stats, mara names the exact files — path, size, SHA, date, author.</div>
       </div>
-
-      <div class="feature-card">
-        <div style="font-size:1.5rem; margin-bottom:12px;">⚡</div>
+      <div class="feat-card">
+        <div style="font-size:1.4rem; margin-bottom:12px;">⚡</div>
         <div style="font-weight:600; margin-bottom:6px;">Zero config</div>
-        <div style="color:#6b6b6b; font-size:14px; line-height:1.6;">Run it in any git repo. No config files, no flags required, no setup. Just <code class="mono" style="font-size:12px;">mara scan</code>.</div>
+        <div style="color:var(--muted); font-size:14px; line-height:1.7;">Run it in any git repo. No config files, no flags required, no setup. Just <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">mara scan</code>.</div>
       </div>
-
-      <div class="feature-card">
-        <div style="font-size:1.5rem; margin-bottom:12px;">🦀</div>
+      <div class="feat-card">
+        <div style="font-size:1.4rem; margin-bottom:12px;">🦀</div>
         <div style="font-weight:600; margin-bottom:6px;">Single Rust binary</div>
-        <div style="color:#6b6b6b; font-size:14px; line-height:1.6;">No runtime deps, no Java, no Python. <code class="mono" style="font-size:12px;">cargo install mara</code> and you're done.</div>
+        <div style="color:var(--muted); font-size:14px; line-height:1.7;">No runtime deps, no Java, no Python. <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">cargo install mara</code> and you're done.</div>
       </div>
-
-      <div class="feature-card">
-        <div style="font-size:1.5rem; margin-bottom:12px;">🛠️</div>
+      <div class="feat-card">
+        <div style="font-size:1.4rem; margin-bottom:12px;">🧹</div>
         <div style="font-weight:600; margin-bottom:6px;">Cleanup ready</div>
-        <div style="color:#6b6b6b; font-size:14px; line-height:1.6;"><code class="mono" style="font-size:12px;">mara suggest</code> emits ready-to-run <code class="mono" style="font-size:12px;">git filter-repo</code> commands, with shell-escaped paths.</div>
+        <div style="color:var(--muted); font-size:14px; line-height:1.7;"><code style="font-family:'JetBrains Mono',monospace; font-size:12px;">mara suggest</code> spits out a ready-to-run <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">git filter-repo</code> command with shell-escaped paths.</div>
       </div>
-
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ HOW IT WORKS ═══════════════════ -->
-<section style="max-width:1100px; margin:0 auto; padding:0 24px 80px;">
+<!-- HOW IT WORKS -->
+<section style="max-width:1100px; margin:0 auto; padding:0 20px 80px;">
   <div class="fade-in">
-    <h2 style="font-size:1.8rem; font-weight:700; margin:0 0 8px; letter-spacing:-0.02em;">How it works</h2>
-    <p style="color:#6b6b6b; margin:0 0 28px; max-width:600px;">mara shells out to two git plumbing commands and does the heavy lifting for you:</p>
-    <div class="code-block">
-      <span style="color:#6b6b6b;"># enumerate every object, filter blobs by size</span><br>
-      <span style="color:#4ade80;">git rev-list --objects --all</span> | <span style="color:#93c5fd;">git cat-file --batch-check</span><br>
+    <h2 style="font-size:1.8rem; font-weight:700; margin:0 0 8px; letter-spacing:-0.02em;">Under the hood</h2>
+    <p style="color:var(--muted); margin:0 0 28px; max-width:560px;">mara shells out to two git plumbing commands and does the heavy lifting for you:</p>
+    <div class="code-block" style="max-width:640px;">
+      <span class="t-dim"># enumerate every object, filter blobs by size</span><br>
+      <span class="t-green">git rev-list</span> <span class="t-amber">--objects --all</span> | <span class="t-green">git cat-file</span> <span class="t-amber">--batch-check</span><br>
       <br>
-      <span style="color:#6b6b6b;"># find the first commit that introduced each path</span><br>
-      <span style="color:#4ade80;">git log --all --diff-filter=A -- &lt;path&gt;</span>
+      <span class="t-dim"># find the first commit that introduced each path</span><br>
+      <span class="t-green">git log</span> <span class="t-amber">--all --diff-filter=A</span> <span class="t-blue">-- &lt;path&gt;</span>
     </div>
-    <p style="color:#9ca3af; margin:20px 0 0; font-size:14px; max-width:600px; line-height:1.7;">
-      Blobs are deduplicated by OID so the same large file across multiple commits counts once. Results are sorted descending by size. Dependencies: <code class="mono" style="font-size:12px;">clap</code> and <code class="mono" style="font-size:12px;">anyhow</code> — nothing else.
+    <p style="color:var(--muted); margin:20px 0 0; font-size:14px; max-width:560px; line-height:1.7;">
+      Blobs are deduplicated by OID so the same large file across multiple commits counts once. Results sorted descending by size. Dependencies: <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">clap</code> + <code style="font-family:'JetBrains Mono',monospace; font-size:12px;">anyhow</code> — nothing else.
     </p>
   </div>
 </section>
 
-<!-- ═══════════════════ INSTALL ═══════════════════ -->
-<section id="install" style="max-width:1100px; margin:0 auto; padding:0 24px 80px;">
+<!-- STAT COMMAND -->
+<section style="max-width:1100px; margin:0 auto; padding:0 20px 80px;">
+  <div class="fade-in">
+    <h2 style="font-size:1.8rem; font-weight:700; margin:0 0 8px; letter-spacing:-0.02em;">Quick health check</h2>
+    <p style="color:var(--muted); margin:0 0 28px; max-width:500px;">See how much space your <code style="font-family:'JetBrains Mono',monospace; font-size:13px; background:var(--surface); padding:2px 6px; border-radius:4px; border:1px solid var(--border);">.git</code> directory is actually using.</p>
+    <div class="terminal" style="max-width:560px;">
+      <div class="terminal-bar">
+        <div class="terminal-dot" style="background:#ff5f57;"></div>
+        <div class="terminal-dot" style="background:#ffbd2e;"></div>
+        <div class="terminal-dot" style="background:#28c840;"></div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#5C5650; margin-left:8px;">~/my-project</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-green">$</span> mara stat</div>
+        <div style="margin-top:10px;"><span class="t-gray">Repository: </span>/home/alice/projects/my-repo</div>
+        <div><span class="t-gray">Git dir:    </span>/home/alice/projects/my-repo/.git</div>
+        <div style="margin-top:8px;">  .git total          <span class="t-amber"> 48.21 MB</span></div>
+        <div><span class="t-gray">    loose objects      </span>1.03 MB</div>
+        <div><span class="t-gray">    pack files         </span>46.95 MB</div>
+        <div><span class="t-gray">    index              </span>243.00 KB</div>
+        <div><span class="t-gray">  working tree        </span>8.70 MB</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section id="install" style="max-width:1100px; margin:0 auto; padding:0 20px 80px;">
   <div class="fade-in">
     <h2 style="font-size:1.8rem; font-weight:700; margin:0 0 8px; letter-spacing:-0.02em;">Install</h2>
-    <p style="color:#6b6b6b; margin:0 0 28px;">Requires Rust 1.70+ and <code class="mono" style="font-size:13px;">git</code> on your PATH.</p>
+    <p style="color:var(--muted); margin:0 0 24px;">Requires Rust 1.70+ and <code style="font-family:'JetBrains Mono',monospace; font-size:13px;">git</code> on your PATH.</p>
 
-    <div style="display:flex; gap:8px; margin-bottom:16px;">
+    <div style="display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap;">
       <button class="tab-btn active" onclick="switchTab('cargo')" id="tab-cargo">Cargo</button>
       <button class="tab-btn" onclick="switchTab('source')" id="tab-source">From source</button>
       <button class="tab-btn" onclick="switchTab('binary')" id="tab-binary">Pre-built</button>
     </div>
 
     <div id="panel-cargo" class="tab-panel active">
-      <div class="code-block">
-        <span style="color:#4ade80;">cargo</span> install mara
+      <div class="code-block" style="max-width:480px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div><span class="t-green">cargo</span> install mara</div>
+        <button class="copy-btn" onclick="copyCmd('cargo install mara')" style="padding:4px 12px; min-height:36px;">copy</button>
       </div>
     </div>
 
     <div id="panel-source" class="tab-panel">
-      <div class="code-block">
-        <span style="color:#4ade80;">git</span> clone https://github.com/iamkorun/mara.git<br>
-        <span style="color:#4ade80;">cd</span> mara<br>
-        <span style="color:#4ade80;">cargo</span> install --path .
+      <div class="code-block" style="max-width:520px;">
+        <span class="t-green">git</span> clone https://github.com/iamkorun/mara.git<br>
+        <span class="t-green">cd</span> mara<br>
+        <span class="t-green">cargo</span> install --path .
       </div>
     </div>
 
     <div id="panel-binary" class="tab-panel">
-      <div class="code-block">
-        <span style="color:#6b6b6b;"># Pre-built binaries coming soon via GitHub Releases.</span><br>
-        <span style="color:#6b6b6b;"># For now, use: cargo install mara</span>
+      <div class="code-block" style="max-width:480px;">
+        <span class="t-dim"># Pre-built binaries available via GitHub Releases.</span><br>
+        <span class="t-dim"># For now, use: cargo install mara</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ CTA FOOTER ═══════════════════ -->
-<section style="border-top:1px solid #1e1e1e; padding:60px 24px;">
+<!-- FOOTER -->
+<footer style="border-top:1px solid var(--border); padding:48px 20px;">
   <div style="max-width:1100px; margin:0 auto; text-align:center;">
-    <h2 style="font-size:1.6rem; font-weight:700; margin:0 0 12px;">Built with ♥ in Rust</h2>
-    <p style="color:#6b6b6b; margin:0 0 32px;">Open source, free forever, MIT licensed.</p>
-    <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+    <p style="font-weight:600; font-size:1.1rem; margin:0 0 8px;">Built with care in Rust</p>
+    <p style="color:var(--muted); margin:0 0 28px; font-size:14px;">Open source, free forever, MIT licensed.</p>
+    <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
       <a href="https://github.com/iamkorun/mara" target="_blank" rel="noopener" class="btn-primary">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3-.4c1.02 0 2.05.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
         Star on GitHub
       </a>
-      <a href="https://buymeacoffee.com/iamkorun" target="_blank" rel="noopener" class="btn-ghost">
-        ☕ Buy Me a Coffee
-      </a>
+      <a href="https://buymeacoffee.com/iamkorun" target="_blank" rel="noopener" class="btn-ghost">☕ Buy Me a Coffee</a>
     </div>
+    <p style="color:var(--muted); margin:32px 0 0; font-size:13px;">🐾 mara — a Patagonian mara that digs through your repo history</p>
   </div>
-</section>
+</footer>
 
 <script>
-  // Copy install command
-  function copyInstall() {
-    const cmd = document.getElementById('install-cmd-text').textContent;
-    const btn = document.getElementById('install-copy-btn');
-    navigator.clipboard.writeText(cmd).then(() => {
-      btn.textContent = 'copied!';
-      btn.classList.add('copied');
-      setTimeout(() => {
-        btn.textContent = 'copy';
-        btn.classList.remove('copied');
-      }, 2000);
+  function copyCmd(text) {
+    navigator.clipboard.writeText(text).then(function() {
+      var toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 1800);
     });
   }
 
-  // Tab switching
   function switchTab(tab) {
-    ['cargo','source','binary'].forEach(t => {
+    ['cargo','source','binary'].forEach(function(t) {
       document.getElementById('tab-' + t).classList.toggle('active', t === tab);
       document.getElementById('panel-' + t).classList.toggle('active', t === tab);
     });
   }
 
-  // Scroll fade-in
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
+  function toggleTheme() {
+    var html = document.documentElement;
+    var isDark = html.classList.contains('dark');
+    if (isDark) {
+      html.classList.remove('dark');
+      html.classList.add('light');
+      localStorage.setItem('forge-theme', 'light');
+    } else {
+      html.classList.remove('light');
+      html.classList.add('dark');
+      localStorage.setItem('forge-theme', 'dark');
+    }
+    updateThemeIcon();
+  }
+
+  function updateThemeIcon() {
+    var isDark = document.documentElement.classList.contains('dark');
+    document.getElementById('sun-icon').style.display = isDark ? 'none' : 'block';
+    document.getElementById('moon-icon').style.display = isDark ? 'block' : 'none';
+    document.getElementById('theme-btn').setAttribute('aria-pressed', isDark ? 'false' : 'true');
+  }
+  updateThemeIcon();
+
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
       if (e.isIntersecting) {
         e.target.classList.add('visible');
         observer.unobserve(e.target);
@@ -488,7 +556,7 @@
     });
   }, { threshold: 0.1 });
 
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+  document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
 </script>
 </body>
 </html>
